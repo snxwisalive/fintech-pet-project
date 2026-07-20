@@ -2,11 +2,8 @@ package com.example.fintech.controller;
 
 import com.example.fintech.DTO.TransferRequestDTO;
 import com.example.fintech.service.TransactionService;
-import com.example.fintech.controller.TransactionController;
 import tools.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 import org.junit.jupiter.api.BeforeEach;

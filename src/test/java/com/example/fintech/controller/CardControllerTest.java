@@ -5,8 +5,6 @@ import com.example.fintech.DTO.CardDTO;
 import com.example.fintech.service.CardService;
 import tools.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 import org.junit.jupiter.api.BeforeEach;
@@ -19,7 +17,6 @@ import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.UUID;
-import java.util.Optional;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
@@ -68,6 +65,4 @@ public class CardControllerTest {
 				.andExpect(jsonPath("$.id").value(cardId.toString()))
 				.andExpect(jsonPath("$.number").value("4242424242424242"));
 	}
-
-
 }

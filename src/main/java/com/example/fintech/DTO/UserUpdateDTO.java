@@ -1,7 +1,6 @@
 package com.example.fintech.DTO;
 
 import lombok.*;
-import java.util.UUID;
 import jakarta.validation.constraints.*;
 
 @NoArgsConstructor

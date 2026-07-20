@@ -9,6 +9,8 @@ import com.example.fintech.DTO.UserUpdateDTO;
 
 import java.util.UUID;
 import java.util.List;
+
+import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
 import jakarta.validation.Valid;
 
@@ -44,6 +46,7 @@ public class UserController {
 	}
 
 	@DeleteMapping("/{id}")
+	@ResponseStatus(HttpStatus.NO_CONTENT)
 	public void deleteUser(@PathVariable UUID id) {
 		userService.deleteUser(id);
 	}
