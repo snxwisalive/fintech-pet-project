@@ -17,9 +17,7 @@ import java.util.Optional;
 
 import com.example.fintech.model.Card;
 import com.example.fintech.repository.CardRepository;
-import com.example.fintech.service.TransactionService;
 import com.example.fintech.DTO.TransferRequestDTO;
-import com.example.fintech.DTO.CardCreationDTO;
 import com.example.fintech.DTO.DepositRequestDTO;
 
 @ExtendWith(MockitoExtension.class)

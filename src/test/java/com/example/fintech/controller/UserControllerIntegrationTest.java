@@ -4,9 +4,8 @@ import java.util.List;
 import java.util.UUID;
 
 import org.junit.jupiter.api.Test;
-import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.web.servlet.MockMvc;
-import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
+import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
@@ -18,15 +17,18 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import org.springframework.security.core.userdetails.UserDetailsService;
+import org.springframework.security.test.context.support.WithMockUser;
+
 import com.example.fintech.service.CardService;
 import com.example.fintech.service.UserService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.example.fintech.DTO.UserCreationDTO;
 import com.example.fintech.DTO.UserDTO;
 import com.example.fintech.DTO.UserUpdateDTO;
+import com.example.fintech.security.JwtService;
 
-@SpringBootTest
-@AutoConfigureMockMvc
+@WebMvcTest(UserController.class)
 public class UserControllerIntegrationTest {
     @Autowired
     private MockMvc mockMvc;
@@ -39,7 +41,14 @@ public class UserControllerIntegrationTest {
     @MockitoBean
     private CardService cardService;
 
+    @MockitoBean
+    private JwtService jwtService;
+
+    @MockitoBean
+    private UserDetailsService userDetailsService;
+
     @Test
+    @WithMockUser
     void getAllUsers_shouldReturn200() throws Exception {
         when (userService.getAllUsers()).thenReturn(List.of());
         
@@ -49,6 +58,7 @@ public class UserControllerIntegrationTest {
     }
 
     @Test
+    @WithMockUser
     void getUser_shouldReturn200() throws Exception {
         UUID id = UUID.randomUUID();
         String firstName = "Alex";
@@ -69,6 +79,7 @@ public class UserControllerIntegrationTest {
     }
 
     @Test
+    @WithMockUser
     void createUser_shouldReturn200() throws Exception {
         UUID id = UUID.randomUUID();
         String firstName = "Alex";
@@ -100,6 +111,7 @@ public class UserControllerIntegrationTest {
     }
 
     @Test
+    @WithMockUser
     void updateUser_shouldReturn200() throws Exception {
         UUID id = UUID.randomUUID();
         String firstName = "Alex";
@@ -128,6 +140,7 @@ public class UserControllerIntegrationTest {
     }
 
     @Test
+    @WithMockUser
     void deleteUser_shouldReturn204() throws Exception {
         UUID id = UUID.randomUUID();
 

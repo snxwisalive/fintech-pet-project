@@ -3,6 +3,7 @@ package com.example.fintech.model;
 import lombok.*;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.*;
+
 import java.util.UUID;
 
 @NoArgsConstructor
@@ -31,4 +32,12 @@ public class User {
 	@NotNull
 	@Column
 	private String phoneNumber;
+
+	@NotNull
+	@Column(unique = true)
+	private String email;
+
+	@Enumerated(EnumType.STRING)
+	@Column
+	private Role role;
 }

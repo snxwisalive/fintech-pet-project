@@ -5,9 +5,8 @@ import java.time.LocalDate;
 import java.util.UUID;
 
 import org.junit.jupiter.api.Test;
-import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.web.servlet.MockMvc;
-import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
+import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
@@ -18,13 +17,16 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import org.springframework.security.core.userdetails.UserDetailsService;
+import org.springframework.security.test.context.support.WithMockUser;
+
 import com.example.fintech.service.CardService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.example.fintech.DTO.CardCreationDTO;
 import com.example.fintech.DTO.CardDTO;
+import com.example.fintech.security.JwtService;
 
-@SpringBootTest
-@AutoConfigureMockMvc
+@WebMvcTest(CardController.class)
 public class CardControllerIntegrationTest {
     @Autowired
     private MockMvc mockMvc;
@@ -34,7 +36,14 @@ public class CardControllerIntegrationTest {
     @MockitoBean
     private CardService cardService;
 
+    @MockitoBean
+    private JwtService jwtService;
+
+    @MockitoBean
+    private UserDetailsService userDetailsService;
+
     @Test
+    @WithMockUser
     void createCard_shouldReturn201() throws Exception {
         UUID userId = UUID.randomUUID();
         UUID id = UUID.randomUUID();
@@ -64,6 +73,7 @@ public class CardControllerIntegrationTest {
     }
 
     @Test
+    @WithMockUser
     void getCard_shouldReturn200() throws Exception {
         UUID userId = UUID.randomUUID();
         UUID id = UUID.randomUUID();
@@ -87,6 +97,7 @@ public class CardControllerIntegrationTest {
     }
 
     @Test
+    @WithMockUser
     void deleteCard_shouldReturn204() throws Exception {
         UUID id = UUID.randomUUID();
 

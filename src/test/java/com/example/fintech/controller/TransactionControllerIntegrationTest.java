@@ -4,12 +4,13 @@ import java.math.BigDecimal;
 import java.util.UUID;
 
 import org.junit.jupiter.api.Test;
-import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.web.servlet.MockMvc;
-import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
+import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
+import org.springframework.security.core.userdetails.UserDetailsService;
+
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -18,10 +19,10 @@ import com.example.fintech.service.TransactionService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.example.fintech.DTO.DepositRequestDTO;
 import com.example.fintech.DTO.TransferRequestDTO;
+import com.example.fintech.security.JwtService;
 
 
-@SpringBootTest
-@AutoConfigureMockMvc
+@WebMvcTest(TransactionController.class)
 public class TransactionControllerIntegrationTest {
     @Autowired
     private MockMvc mockMvc;
@@ -30,6 +31,12 @@ public class TransactionControllerIntegrationTest {
 
     @MockitoBean
     private TransactionService transactionService;
+
+    @MockitoBean
+    private JwtService jwtService;
+
+    @MockitoBean
+    private UserDetailsService userDetailsService;
 
     @Test
     void deposit_shouldReturn200() throws Exception {
