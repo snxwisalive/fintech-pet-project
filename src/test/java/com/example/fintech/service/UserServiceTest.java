@@ -1,59 +1,72 @@
 package com.example.fintech.service;
 
+import com.example.fintech.DTO.UserCreationDTO;
+import com.example.fintech.DTO.UserDTO;
+import com.example.fintech.mapper.UserMapper;
+import com.example.fintech.model.User;
+import com.example.fintech.repository.CardRepository;
+import com.example.fintech.repository.UserRepository;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.when;
-import static org.junit.jupiter.api.Assertions.assertEquals;
 
-import com.example.fintech.model.User;
-import com.example.fintech.DTO.UserDTO;
-import com.example.fintech.DTO.UserCreationDTO;
-import com.example.fintech.mapper.UserMapper;
-import com.example.fintech.repository.UserRepository;
-import com.example.fintech.repository.CardRepository;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
-public class UserServiceTest {
-	@Mock
-	private UserRepository userRepository;
+class UserServiceTest {
 
-	@Mock
-	private CardRepository cardRepository;
+    @Mock
+    private UserRepository userRepository;
 
-	@Mock
-	private UserMapper userMapper;
+    @Mock
+    private CardRepository cardRepository;
 
-	@InjectMocks
-	private UserService userService;
+    @Mock
+    private UserMapper userMapper;
 
-	@Test
-	public void shouldCreateUser() {
-		UserDTO expectedDto = UserDTO.builder()
-					.firstName("Max")
-					.lastName("Verstappen")
-					.phoneNumber("123456789")
-					.build();
+    private UserService userService;
 
-		UserCreationDTO dto = new UserCreationDTO("Max", "Verstappen", "max.verstappen@example.com", "123456789", "123456");
-		
-		User user = User.builder()
-		    .firstName("Max")
-		    .lastName("Verstappen")
-		    .phoneNumber("123456789")
-		    .build();
+    @BeforeEach
+    void setUp() {
+        userService = new UserService(userRepository, cardRepository, userMapper);
+    }
 
-		when(userMapper.toEntity(any(UserCreationDTO.class))).thenReturn(user);
+    @Test
+    void createUser_shouldReturnMappedUser() {
+        UserCreationDTO request = UserCreationDTO.builder()
+                .firstName("Max")
+                .lastName("Verstappen")
+                .email("max.verstappen@example.com")
+                .phoneNumber("1234567890")
+                .password("12345678")
+                .build();
 
-		when(userMapper.toDto(any())).thenReturn(expectedDto);
+        User user = User.builder()
+                .firstName("Max")
+                .lastName("Verstappen")
+                .email("max.verstappen@example.com")
+                .phoneNumber("1234567890")
+                .build();
 
-		when(userRepository.save(any())).thenReturn(user);
+        UserDTO expected = UserDTO.builder()
+                .firstName("Max")
+                .lastName("Verstappen")
+                .phoneNumber("1234567890")
+                .build();
 
-		UserDTO result = userService.createUser(dto);
+        when(userMapper.toEntity(request)).thenReturn(user);
+        when(userRepository.save(user)).thenReturn(user);
+        when(userMapper.toDto(user)).thenReturn(expected);
 
-		assertEquals("Max", result.getFirstName());
-	}
+        UserDTO result = userService.createUser(request);
+
+        assertEquals(expected, result);
+        verify(userRepository).save(user);
+        verify(userMapper).toDto(user);
+    }
 }

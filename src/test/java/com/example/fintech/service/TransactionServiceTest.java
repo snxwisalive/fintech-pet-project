@@ -1,197 +1,168 @@
 package com.example.fintech.service;
 
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InjectMocks;
-import org.mockito.Mock;
-import org.mockito.junit.jupiter.MockitoExtension;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.when;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.never;
-import java.util.UUID;
-import java.math.BigDecimal;
-import java.util.Optional;
-
-import com.example.fintech.model.Card;
-import com.example.fintech.repository.CardRepository;
+import com.example.fintech.DTO.DepositRequestDTO;
 import com.example.fintech.DTO.TransferRequestDTO;
 import com.example.fintech.exception.InsufficientFundsException;
 import com.example.fintech.exception.ResourceNotFoundException;
-import com.example.fintech.DTO.DepositRequestDTO;
+import com.example.fintech.model.Card;
+import com.example.fintech.repository.CardRepository;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
+
+import java.math.BigDecimal;
+import java.util.Optional;
+import java.util.UUID;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
-public class TransactionServiceTest {
-	@Mock
-	private CardRepository cardRepository;
+class TransactionServiceTest {
 
-	@InjectMocks
-	private TransactionService transactionService;
+    @Mock
+    private CardRepository cardRepository;
 
-	@Test
-	public void shouldTransferSuccessfully() {
-		UUID senderCardId = UUID.randomUUID();
-		UUID receiverCardId = UUID.randomUUID();
+    private TransactionService transactionService;
 
-		String receiverPan = "4242424242424242";
+    @BeforeEach
+    void setUp() {
+        transactionService = new TransactionService(cardRepository);
+    }
 
-		Card senderCard = Card.builder()
-				.id(senderCardId)
-				.balance(BigDecimal.valueOf(1500))
-				.build();
+    @Test
+    void transfer_shouldMoveFundsBetweenCards() {
+        UUID senderCardId = UUID.randomUUID();
+        String receiverPan = "4242424242424242";
 
-		Card receiverCard = Card.builder()
-				.id(receiverCardId)
-				.number(receiverPan)
-				.balance(BigDecimal.valueOf(100))
-				.build();
+        Card senderCard = Card.builder()
+                .id(senderCardId)
+                .balance(BigDecimal.valueOf(1500))
+                .build();
 
-		TransferRequestDTO request = TransferRequestDTO.builder()
-							.fromCardId(senderCardId)
-							.toCardNumber(receiverPan)
-							.amount(BigDecimal.valueOf(500))
-							.build();
+        Card receiverCard = Card.builder()
+                .id(UUID.randomUUID())
+                .number(receiverPan)
+                .balance(BigDecimal.valueOf(100))
+                .build();
 
-		when(cardRepository.findById(senderCardId)).thenReturn(Optional.of(senderCard));
-		when(cardRepository.findByNumber(receiverPan)).thenReturn(Optional.of(receiverCard));
+        TransferRequestDTO request = TransferRequestDTO.builder()
+                .fromCardId(senderCardId)
+                .toCardNumber(receiverPan)
+                .amount(BigDecimal.valueOf(500))
+                .build();
 
-		transactionService.transfer(request);
+        when(cardRepository.findById(senderCardId)).thenReturn(Optional.of(senderCard));
+        when(cardRepository.findByNumber(receiverPan)).thenReturn(Optional.of(receiverCard));
 
-		verify(cardRepository).save(senderCard);
-		verify(cardRepository).save(receiverCard);
+        transactionService.transfer(request);
 
-		assertEquals(BigDecimal.valueOf(1000), senderCard.getBalance());
-		assertEquals(BigDecimal.valueOf(600), receiverCard.getBalance());
-	}
+        verify(cardRepository).save(senderCard);
+        verify(cardRepository).save(receiverCard);
+        assertEquals(BigDecimal.valueOf(1000), senderCard.getBalance());
+        assertEquals(BigDecimal.valueOf(600), receiverCard.getBalance());
+    }
 
-	@Test
-	public void shouldThrowExceptionWhenNotEnoughMoney() {
-		UUID senderCardId = UUID.randomUUID();
-		UUID receiverCardId = UUID.randomUUID();
+    @Test
+    void transfer_shouldThrowWhenInsufficientFunds() {
+        UUID senderCardId = UUID.randomUUID();
+        String receiverPan = "4242424242424242";
 
-		String receiverPan = "4242424242424242";
+        Card senderCard = Card.builder()
+                .id(senderCardId)
+                .balance(BigDecimal.valueOf(200))
+                .build();
 
-		Card senderCard = Card.builder()
-				.id(senderCardId)
-				.balance(BigDecimal.valueOf(200))
-				.build();
+        Card receiverCard = Card.builder()
+                .id(UUID.randomUUID())
+                .number(receiverPan)
+                .balance(BigDecimal.valueOf(100))
+                .build();
 
-		Card receiverCard = Card.builder()
-				.id(receiverCardId)
-				.number(receiverPan)
-				.balance(BigDecimal.valueOf(100))
-				.build();
+        TransferRequestDTO request = TransferRequestDTO.builder()
+                .fromCardId(senderCardId)
+                .toCardNumber(receiverPan)
+                .amount(BigDecimal.valueOf(500))
+                .build();
 
-		TransferRequestDTO request = TransferRequestDTO.builder()
-							.fromCardId(senderCardId)
-							.toCardNumber(receiverPan)
-							.amount(BigDecimal.valueOf(500))
-							.build();
+        when(cardRepository.findById(senderCardId)).thenReturn(Optional.of(senderCard));
+        when(cardRepository.findByNumber(receiverPan)).thenReturn(Optional.of(receiverCard));
 
-		when(cardRepository.findById(senderCardId)).thenReturn(Optional.of(senderCard));
-		when(cardRepository.findByNumber(receiverPan)).thenReturn(Optional.of(receiverCard));
+        InsufficientFundsException exception = assertThrows(InsufficientFundsException.class,
+                () -> transactionService.transfer(request));
 
-		InsufficientFundsException exception = assertThrows(InsufficientFundsException.class, () -> {
-			transactionService.transfer(request);
-		});
+        verify(cardRepository, never()).save(any(Card.class));
+        assertEquals("Not enough money on the card", exception.getMessage());
+    }
 
-		verify(cardRepository, never()).save(any(Card.class));
+    @Test
+    void transfer_shouldThrowWhenReceiverNotFound() {
+        UUID senderCardId = UUID.randomUUID();
+        String missingPan = "4141410000000003";
 
-		assertEquals("Not enough money on the card", exception.getMessage());
-	}
+        Card senderCard = Card.builder()
+                .id(senderCardId)
+                .balance(BigDecimal.valueOf(200))
+                .build();
 
-	@Test
-	public void shouldThrowExceptionReceiverNotFound() {
-		UUID senderCardId = UUID.randomUUID();
-		UUID receiverCardId = UUID.randomUUID();
+        TransferRequestDTO request = TransferRequestDTO.builder()
+                .fromCardId(senderCardId)
+                .toCardNumber(missingPan)
+                .amount(BigDecimal.valueOf(10))
+                .build();
 
-		String receiverPan = "4242424242424242";
-		String wrongPan = "4141410000000003";
+        when(cardRepository.findById(senderCardId)).thenReturn(Optional.of(senderCard));
+        when(cardRepository.findByNumber(missingPan)).thenReturn(Optional.empty());
 
+        ResourceNotFoundException exception = assertThrows(ResourceNotFoundException.class,
+                () -> transactionService.transfer(request));
 
-		Card senderCard = Card.builder()
-				.id(senderCardId)
-				.balance(BigDecimal.valueOf(200))
-				.build();
+        verify(cardRepository, never()).save(any(Card.class));
+        assertEquals("Receiver card not found", exception.getMessage());
+    }
 
-		Card receiverCard = Card.builder()
-				.id(receiverCardId)
-				.number(wrongPan)
-				.balance(BigDecimal.valueOf(100))
-				.build();
+    @Test
+    void deposit_shouldAddAmountToCard() {
+        String receiverPan = "4242424242424242";
+        Card receiverCard = Card.builder()
+                .id(UUID.randomUUID())
+                .number(receiverPan)
+                .balance(BigDecimal.ZERO)
+                .build();
 
-		TransferRequestDTO request = TransferRequestDTO.builder()
-							.fromCardId(senderCardId)
-							.toCardNumber(wrongPan)
-							.amount(BigDecimal.valueOf(10))
-							.build();
+        DepositRequestDTO request = DepositRequestDTO.builder()
+                .toCardNumber(receiverPan)
+                .amount(BigDecimal.valueOf(100))
+                .build();
 
-		when(cardRepository.findById(senderCardId)).thenReturn(Optional.of(senderCard));
-		when(cardRepository.findByNumber(wrongPan)).thenReturn(Optional.empty());
+        when(cardRepository.findByNumber(receiverPan)).thenReturn(Optional.of(receiverCard));
 
-		ResourceNotFoundException exception = assertThrows(ResourceNotFoundException.class, () -> {
-			transactionService.transfer(request);
-		});
+        transactionService.deposit(request);
 
-		verify(cardRepository, never()).save(any(Card.class));
+        verify(cardRepository).save(receiverCard);
+        assertEquals(BigDecimal.valueOf(100), receiverCard.getBalance());
+    }
 
-		assertEquals("Receiver card not found", exception.getMessage());
-	}
+    @Test
+    void deposit_shouldThrowWhenCardNotFound() {
+        String missingPan = "4141410000000003";
+        DepositRequestDTO request = DepositRequestDTO.builder()
+                .toCardNumber(missingPan)
+                .amount(BigDecimal.valueOf(100))
+                .build();
 
-	@Test
-	public void shouldDepositSuccessfully() {
-		UUID receiverCardId = UUID.randomUUID();
+        when(cardRepository.findByNumber(missingPan)).thenReturn(Optional.empty());
 
-		String receiverPan = "4242424242424242";
+        ResourceNotFoundException exception = assertThrows(ResourceNotFoundException.class,
+                () -> transactionService.deposit(request));
 
-		Card receiverCard = Card.builder()
-				.id(receiverCardId)
-				.number(receiverPan)
-				.balance(BigDecimal.valueOf(0))
-				.build();
-
-		DepositRequestDTO request = DepositRequestDTO.builder()
-							.toCardNumber(receiverPan)
-							.amount(BigDecimal.valueOf(100))
-							.build();
-
-		when(cardRepository.findByNumber(receiverPan)).thenReturn(Optional.of(receiverCard));
-
-		transactionService.deposit(request);
-
-		verify(cardRepository).save(receiverCard);
-
-		assertEquals(BigDecimal.valueOf(100), receiverCard.getBalance());
-	}
-
-	@Test
-	public void shouldThrowExceptionCardNotFoundWhileDepositing() {
-		UUID receiverCardId = UUID.randomUUID();
-
-		String receiverPan = "4242424242424242";
-		String wrongPan = "4141410000000003";
-
-		Card receiverCard = Card.builder()
-				.id(receiverCardId)
-				.number(receiverPan)
-				.balance(BigDecimal.valueOf(0))
-				.build();
-
-		DepositRequestDTO request = DepositRequestDTO.builder()
-							.toCardNumber(wrongPan)
-							.amount(BigDecimal.valueOf(100))
-							.build();
-
-		when(cardRepository.findByNumber(wrongPan)).thenReturn(Optional.empty());
-
-		ResourceNotFoundException exception = assertThrows(ResourceNotFoundException.class, () -> {
-			transactionService.deposit(request);
-		});
-
-		verify(cardRepository, never()).save(any(Card.class));
-
-		assertEquals("Receiver card not found", exception.getMessage());
-	}
+        verify(cardRepository, never()).save(any(Card.class));
+        assertEquals("Receiver card not found", exception.getMessage());
+    }
 }

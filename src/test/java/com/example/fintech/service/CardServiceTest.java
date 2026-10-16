@@ -1,69 +1,77 @@
 package com.example.fintech.service;
 
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InjectMocks;
-import org.mockito.Mock;
-import org.mockito.junit.jupiter.MockitoExtension;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.when;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import java.util.UUID;
-import java.time.LocalDate;
-import java.time.Month;
-import java.math.BigDecimal;
-import java.util.Optional;
-
-import com.example.fintech.model.Card;
-import com.example.fintech.DTO.CardDTO;
 import com.example.fintech.DTO.CardCreationDTO;
+import com.example.fintech.DTO.CardDTO;
 import com.example.fintech.mapper.CardMapper;
+import com.example.fintech.model.Card;
+import com.example.fintech.model.User;
 import com.example.fintech.repository.CardRepository;
 import com.example.fintech.repository.UserRepository;
-import com.example.fintech.model.User;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
+
+import java.math.BigDecimal;
+import java.time.LocalDate;
+import java.util.Optional;
+import java.util.UUID;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
-public class CardServiceTest {
-	@Mock
-	private CardRepository cardRepository;
+class CardServiceTest {
 
-	@Mock
-	private UserRepository userRepository;
+    @Mock
+    private CardRepository cardRepository;
 
-	@Mock
-	private CardMapper cardMapper;
+    @Mock
+    private UserRepository userRepository;
 
-	@InjectMocks
-	private CardService cardService;
+    @Mock
+    private CardMapper cardMapper;
 
-	@Test
-	public void shouldCreateCard() {
-		UUID uuid = UUID.randomUUID();
-		CardCreationDTO dto = new CardCreationDTO(uuid);
-		User user = User.builder().id(uuid).build();
+    private CardService cardService;
 
-		CardDTO expectedDto = CardDTO.builder()
-				.number("1234567891113156")
-				.expirationDate(LocalDate.of(2030, Month.AUGUST, 16))
-				.balance(BigDecimal.valueOf(2000))
-				.userId(uuid)
-				.build();
+    @BeforeEach
+    void setUp() {
+        cardService = new CardService(cardRepository, userRepository, cardMapper);
+    }
 
-		Card card = Card.builder()
-			.number("1234567891113156")
-			.expirationDate(LocalDate.of(2030, Month.AUGUST, 16))
-			.balance(BigDecimal.valueOf(2000))
-			.user(user)
-			.build();
+    @Test
+    void createCard_shouldReturnMappedCard() {
+        UUID userId = UUID.randomUUID();
+        CardCreationDTO request = new CardCreationDTO(userId);
+        User user = User.builder().id(userId).build();
 
-		when(cardMapper.toDto(any())).thenReturn(expectedDto);
+        CardDTO expected = CardDTO.builder()
+                .number("4141410000000003")
+                .expirationDate(LocalDate.now().plusYears(4))
+                .balance(BigDecimal.ZERO)
+                .userId(userId)
+                .build();
 
-		when(userRepository.findById(any())).thenReturn(Optional.of(user));
+        when(userRepository.findById(userId)).thenReturn(Optional.of(user));
+        when(cardRepository.existsByNumber(anyString())).thenReturn(false);
+        when(cardRepository.save(any(Card.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        when(cardMapper.toDto(any(Card.class))).thenReturn(expected);
 
-		when(cardRepository.save(any())).thenReturn(card);
+        CardDTO result = cardService.createCard(request);
 
-		CardDTO result = cardService.createCard(dto);
+        ArgumentCaptor<Card> cardCaptor = ArgumentCaptor.forClass(Card.class);
+        verify(cardRepository).save(cardCaptor.capture());
+        Card saved = cardCaptor.getValue();
 
-		assertEquals("1234567891113156", result.getNumber());
-	}
+        assertEquals(user, saved.getUser());
+        assertEquals(BigDecimal.ZERO, saved.getBalance());
+        assertEquals(LocalDate.now().plusYears(4), saved.getExpirationDate());
+        assertEquals(16, saved.getNumber().length());
+        assertEquals(expected, result);
+    }
 }
