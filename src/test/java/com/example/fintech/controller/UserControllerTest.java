@@ -27,14 +27,12 @@ import java.time.LocalDate;
 import java.util.List;
 import java.util.UUID;
 
-import static org.mockito.Mockito.when;
-import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
+import static org.mockito.Mockito.*;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.user;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
-import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -97,11 +95,22 @@ class UserControllerTest {
 
         when(userService.getUserById(id)).thenReturn(user);
 
-        mockMvc.perform(get("/api/users/" + id))
+        mockMvc.perform(get("/api/users/" + id)
+                    .with(user(principal(id, Role.USER))))
                 .andExpect(status().isOk())
                 .andExpect(content().contentType(MediaType.APPLICATION_JSON))
                 .andExpect(jsonPath("$.id").value(id.toString()))
                 .andExpect(jsonPath("$.firstName").value("Alex"));
+    }
+
+    @Test
+    void getUserByIdFromAnotherUser_shouldReturn403() throws Exception {
+        UUID id = UUID.randomUUID();
+        verify(userService, never()).getUserById(any());
+
+        mockMvc.perform(get("/api/users/" + id)
+                        .with(user(principal(UUID.randomUUID(), Role.USER))))
+                .andExpect(status().isForbidden());
     }
 
     @Test
@@ -125,14 +134,12 @@ class UserControllerTest {
         when(userService.createUser(request)).thenReturn(response);
 
         mockMvc.perform(post("/api/users")
-                        .with(csrf())
-                        .with(user("test").roles("USER"))
+                        .with(user(principal(id, Role.USER)))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isOk())
                 .andExpect(content().contentType(MediaType.APPLICATION_JSON))
-                .andExpect(jsonPath("$.id").value(id.toString()))
-                .andDo(print());
+                .andExpect(jsonPath("$.id").value(id.toString()));
     }
 
     @Test
@@ -154,7 +161,7 @@ class UserControllerTest {
         when(userService.updateUser(id, request)).thenReturn(response);
 
         mockMvc.perform(patch("/api/users/" + id)
-                        .with(csrf())
+                        .with(user(principal(id, Role.USER)))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isOk())
@@ -166,7 +173,8 @@ class UserControllerTest {
     void deleteUser_shouldReturn204() throws Exception {
         UUID id = UUID.randomUUID();
 
-        mockMvc.perform(delete("/api/users/" + id).with(csrf()))
+        mockMvc.perform(delete("/api/users/" + id)
+                        .with(user(principal(id, Role.USER))))
                 .andExpect(status().isNoContent());
     }
 
@@ -185,7 +193,8 @@ class UserControllerTest {
 
         when(cardService.getAllUserCards(userId)).thenReturn(List.of(card));
 
-        mockMvc.perform(get("/api/users/" + userId + "/cards"))
+        mockMvc.perform(get("/api/users/" + userId + "/cards")
+                        .with(user(principal(userId, Role.USER))))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$[0].id").value(cardId.toString()));
     }
