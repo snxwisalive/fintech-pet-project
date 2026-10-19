@@ -4,12 +4,19 @@ import com.example.fintech.DTO.CardDTO;
 import com.example.fintech.DTO.UserCreationDTO;
 import com.example.fintech.DTO.UserDTO;
 import com.example.fintech.DTO.UserUpdateDTO;
+import com.example.fintech.model.Role;
+import com.example.fintech.model.User;
+import com.example.fintech.security.JwtService;
+import com.example.fintech.security.SecurityConfig;
+import com.example.fintech.security.UserPrincipal;
 import com.example.fintech.service.CardService;
 import com.example.fintech.service.UserService;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
+import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
+import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
@@ -22,14 +29,17 @@ import java.util.UUID;
 
 import static org.mockito.Mockito.when;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.user;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+@Import(SecurityConfig.class)
 @WebMvcTest(UserController.class)
 @WithMockUser
 class UserControllerTest {
@@ -46,11 +56,31 @@ class UserControllerTest {
     @MockitoBean
     private CardService cardService;
 
-    @Test
-    void getAllUsers_shouldReturn200() throws Exception {
-        when(userService.getAllUsers()).thenReturn(List.of());
+    @MockitoBean
+    private JwtService jwtService;
 
-        mockMvc.perform(get("/api/users"))
+    @MockitoBean
+    private UserDetailsService userDetailsService;
+
+    private UserPrincipal principal(UUID id, Role role) {
+        User user = new User();
+        user.setId(id);
+        user.setRole(role);
+
+        return new UserPrincipal(user);
+    }
+
+    @Test
+    void getAllUsersUser_shouldReturn403() throws Exception {
+        mockMvc.perform(get("/api/users")
+                .with(user(principal(UUID.randomUUID(), Role.USER))))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    void getAllUsersAdmin_shouldReturn200() throws Exception {
+        mockMvc.perform(get("/api/users")
+                .with(user(principal(UUID.randomUUID(), Role.ADMIN))))
                 .andExpect(status().isOk())
                 .andExpect(content().contentType(MediaType.APPLICATION_JSON));
     }
@@ -96,11 +126,13 @@ class UserControllerTest {
 
         mockMvc.perform(post("/api/users")
                         .with(csrf())
+                        .with(user("test").roles("USER"))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isOk())
                 .andExpect(content().contentType(MediaType.APPLICATION_JSON))
-                .andExpect(jsonPath("$.id").value(id.toString()));
+                .andExpect(jsonPath("$.id").value(id.toString()))
+                .andDo(print());
     }
 
     @Test
